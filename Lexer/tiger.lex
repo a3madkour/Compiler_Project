@@ -5,16 +5,17 @@ val lineNum = ErrorMsg.lineNum
 val linePos = ErrorMsg.linePos
 fun err(p1,p2) = ErrorMsg.error p1
 
+  // Add functionality to check if you are in a string literal or a comment state and then throw an error if you are. 
 fun eof() = let val pos = hd(!linePos) in Tokens.EOF(pos,pos) end
 
 
 val commentInc = ref 0
 
 %% 
- %s COMMENT;
+ %s COMMENT STRING_LITERAL STRING_ESCAPE STRING_SEQ;
  digit = [0-9]+;
  ID = [a-zA-Z][a-zA-Z0-9_]*;
- WS = [ \t \r \b \f];
+ WS = [ \t \r \f];
 %%
 <INITIAL>\n => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL>WS => (continue());
@@ -61,6 +62,7 @@ val commentInc = ref 0
 <INITIAL>to     => (Tokens.TO   (yypos, yypos + 2));
 
 <INITIAL>ID => (Tokens.ID (yytext, yypos, yypos + size yytext));
+<INITIAL>digits => (Tokens.INT (valOf(Int.fromString(yytext)), yypos, yypos + size yytext));
 
 <INITIAL>"/*"   => (YYBEGIN COMMENT; commentInc := !commentInc + 1; continue ());
 <COMMENT>"/*"   => (commentInc := !commentInc + 1; continue ());
@@ -68,6 +70,7 @@ val commentInc = ref 0
                     if !commentInc = 0 then YYBEGIN INITIAL else (); continue ());
 <COMMENT>\n     => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <COMMENT>.      => (continue ());
+
 
 <INITIAL>.       => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
 
