@@ -82,16 +82,16 @@ fun eof() =
 <COMMENT>.      => (continue ());
 
 <INITIAL>"\""     => (YYBEGIN STRING; inString := true; stringAcc := ""; continue());
-<STRING>"\""      => (YYBEGIN INITIAL; inString := false;Tokens.STRING(!stringAcc, yypos, yypos + size !stringAcc));
+<STRING>"\""      => (YYBEGIN INITIAL; inString := false;Tokens.STRING(!stringAcc, yypos, yypos + size (!stringAcc) ));
 <STRING>"\\"      => (YYBEGIN STRING_ESCAPE; continue());
 <STRING>\n        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
 <STRING>.         => (stringAcc := !stringAcc ^ yytext; continue());
-<STRING_ESCAPE>"n" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\n");
-<STRING_ESCAPE>"t" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\t");
-<STRING_ESCAPE>["\^"][A-Z | \] | \[ | \^  | \\ | \_] => (YYBEGIN STRING;stringAcc := !stringAcc ^ String.str(chr(ord(String.sub(yytext, 1)) - 64)));
-<STRING_ESCAPE>{digit}{digit}{digit} => (YYBEGIN STRING;stringAcc := !stringAcc ^ String.str(chr(valOf(Int.fromString(yytext)))));
-<STRING_ESCAPE>"\"" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\"");
-<STRING_ESCAPE>"\\" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\\");
+<STRING_ESCAPE>"n" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\n";continue());
+<STRING_ESCAPE>"t" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\t";continue());
+<STRING_ESCAPE>["\^"][A-Z | \] | \[ | \^  | \\ | \_] => (YYBEGIN STRING;stringAcc := !stringAcc ^ String.str(chr(ord(String.sub(yytext, 1)) - 64));continue());
+<STRING_ESCAPE>{digit}{digit}{digit} => (YYBEGIN STRING;stringAcc := !stringAcc ^ String.str(chr(valOf(Int.fromString(yytext))));continue());
+<STRING_ESCAPE>"\"" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\"";continue());
+<STRING_ESCAPE>"\\" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\\";continue());
 <STRING_ESCAPE>{WS} => (YYBEGIN STRING_SEQ; continue());
 <STRING_ESCAPE>\n   => (YYBEGIN STRING_SEQ;lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <STRING_ESCAPE>.    => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
