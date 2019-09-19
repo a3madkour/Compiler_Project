@@ -9,18 +9,16 @@ val commentInc = ref 0
 val stringAcc = ref ""
 val inString = ref false
   
-// Add functionality to check if you are in a string literal or a comment state
-// and then throw an error if you are. 
 fun eof() =
   let val pos = hd(!linePos)
-  in
+  in (
   if !commentInc <> 0
-  then (ErrorMsg.error pos ("eof inside of comment"));
+  then (ErrorMsg.error pos "eof inside of comment")
   else ();
   if !inString = true
-  then (ErrorMsg.error pos ("eof inside of string"));
+  then (ErrorMsg.error pos "eof inside of string")
   else ();
-  Tokens.EOF(pos,pos)
+  Tokens.EOF(pos,pos))
   end
 
 %% 
@@ -74,33 +72,27 @@ fun eof() =
 <INITIAL>to     => (Tokens.TO   (yypos, yypos + 2));
 
 <INITIAL>ID => (Tokens.ID (yytext, yypos, yypos + size yytext));
-<INITIAL>digits => (Tokens.INT (valOf(Int.fromString(yytext)), yypos, yypos + size yytext));
+<INITIAL>digit => (Tokens.INT (valOf(Int.fromString(yytext)), yypos, yypos + size yytext));
 
 <INITIAL>"/*"   => (YYBEGIN COMMENT; commentInc := !commentInc + 1; continue ());
 <COMMENT>"/*"   => (commentInc := !commentInc + 1; continue ());
-<COMMENT>"*/"   => (commentInc := !commentInc - 1;
-                    if !commentInc = 0 then YYBEGIN INITIAL else ();
-		    continue ());
+<COMMENT>"*/"   => (commentInc := !commentInc - 1;if !commentInc = 0 then YYBEGIN INITIAL else ();continue ());
 <COMMENT>\n     => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <COMMENT>.      => (continue ());
 
 <INITIAL>"\""     => (YYBEGIN STRING; inString := true; stringAcc := ""; continue());
-<STRING>"\""      => (YYBEGIN INITIAL; inString := false;
-		      Tokens.STRING(!stringAcc, yypos, yypos + size !stringAcc));
+<STRING>"\""      => (YYBEGIN INITIAL; inString := false;Tokens.STRING(!stringAcc, yypos, yypos + size !stringAcc));
 <STRING>"\\"      => (YYBEGIN STRING_ESCAPE; continue());
 <STRING>\n        => (Error.Msg.error yypos ("illegal character " ^ yytext); continue());
 <STRING>.         => (stringAcc := !stringAcc ^ yytext; continue());
 <STRING_ESCAPE>"n" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\n");
 <STRING_ESCAPE>"t" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\t");
-<STRING_ESCAPE>["\^"][A-Z | "\[" | "\]" | "\\" | "\^" | "\_"] => (YYBEGIN STRING;
- stringAcc := !stringAcc ^ String.str(chr(ord(String.sub(yytext, 1)) - 64)));
-<STRING_ESCAPE>{digits}{digits}{digits} => (YYBEGIN STRING;
- stringAcc := !stringAcc ^ String.str(chr(valOf(Int.fromString(yytext)))));
+<STRING_ESCAPE>["\^"][A-Z | \] | \[ | \^  | \\ | \_] => (YYBEGIN STRING;stringAcc := !stringAcc ^ String.str(chr(ord(String.sub(yytext, 1)) - 64)));
+<STRING_ESCAPE>{digit}{digit}{digit} => (YYBEGIN STRING;stringAcc := !stringAcc ^ String.str(chr(valOf(Int.fromString(yytext)))));
 <STRING_ESCAPE>"\"" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\"");
 <STRING_ESCAPE>"\\" => (YYBEGIN STRING; stringAcc := !stringAcc & "\\");
 <STRING_ESCAPE>{WS} => (YYBEGIN STRING_SEQ; continue());
-<STRING_ESCAPE>\n   => (YYBEGIN STRING_SEQ;
- lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
+<STRING_ESCAPE>\n   => (YYBEGIN STRING_SEQ;lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <STRING_ESCAPE>.    => (Error.Msg.error yypos ("illegal character " ^ yytext); continue());
 <STRING_SEQ>{WS}    => (continue());
 <STRING_SEQ>\n      => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
