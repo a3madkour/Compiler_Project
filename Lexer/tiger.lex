@@ -27,6 +27,7 @@ fun eof() =
  ID = [a-zA-Z][a-zA-Z0-9_]*;
  WS = [ \t\f];
 %%
+
 <INITIAL>\n => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <INITIAL>WS => (continue());
 <INITIAL>","	=> (Tokens.COMMA(yypos,yypos+1));
@@ -83,21 +84,21 @@ fun eof() =
 <INITIAL>"\""     => (YYBEGIN STRING; inString := true; stringAcc := ""; continue());
 <STRING>"\""      => (YYBEGIN INITIAL; inString := false;Tokens.STRING(!stringAcc, yypos, yypos + size !stringAcc));
 <STRING>"\\"      => (YYBEGIN STRING_ESCAPE; continue());
-<STRING>\n        => (Error.Msg.error yypos ("illegal character " ^ yytext); continue());
+<STRING>\n        => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
 <STRING>.         => (stringAcc := !stringAcc ^ yytext; continue());
 <STRING_ESCAPE>"n" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\n");
 <STRING_ESCAPE>"t" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\t");
 <STRING_ESCAPE>["\^"][A-Z | \] | \[ | \^  | \\ | \_] => (YYBEGIN STRING;stringAcc := !stringAcc ^ String.str(chr(ord(String.sub(yytext, 1)) - 64)));
 <STRING_ESCAPE>{digit}{digit}{digit} => (YYBEGIN STRING;stringAcc := !stringAcc ^ String.str(chr(valOf(Int.fromString(yytext)))));
 <STRING_ESCAPE>"\"" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\"");
-<STRING_ESCAPE>"\\" => (YYBEGIN STRING; stringAcc := !stringAcc & "\\");
+<STRING_ESCAPE>"\\" => (YYBEGIN STRING; stringAcc := !stringAcc ^ "\\");
 <STRING_ESCAPE>{WS} => (YYBEGIN STRING_SEQ; continue());
 <STRING_ESCAPE>\n   => (YYBEGIN STRING_SEQ;lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
-<STRING_ESCAPE>.    => (Error.Msg.error yypos ("illegal character " ^ yytext); continue());
+<STRING_ESCAPE>.    => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
 <STRING_SEQ>{WS}    => (continue());
 <STRING_SEQ>\n      => (lineNum := !lineNum+1; linePos := yypos :: !linePos; continue());
 <STRING_SEQ>"\\"    => (YYBEGIN STRING; continue());
-<STRING_SEQ>.       => (Error.Msg.error yypos ("illegal character " ^ yytext); continue());
+<STRING_SEQ>.       => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
 
 <INITIAL>.       => (ErrorMsg.error yypos ("illegal character " ^ yytext); continue());
 
