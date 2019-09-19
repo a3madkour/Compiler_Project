@@ -27,7 +27,7 @@ fun processDigit(yytext) =
      val charCode = valOf(Int.fromString(yytext))
   in
      if charCode > 255
-     then (ErrorMsg.error (!posOffset) "Escape digit incorrect")
+     then (ErrorMsg.error (!posOffset) ("ASCII code:" ^ yytext ^ "incorrect"))
      else ();
      String.str(chr(charCode))
   end
